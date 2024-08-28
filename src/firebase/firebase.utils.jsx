@@ -1,6 +1,9 @@
+
+// src/firebase/firebase.utils.js
+
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc} from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 const Config = {
   apiKey: "AIzaSyD1kKPuPI6RtNOMvu2G_xPcwlCxz4_YqA8",
@@ -11,9 +14,10 @@ const Config = {
   appId: "1:341295841748:web:d4a6e8e0a4b91f7f569641"
 };
 
+
 const app = initializeApp(Config);
-export const auth = getAuth(app);
-export const firestore = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
@@ -26,25 +30,33 @@ export const signInWithGoogle = async () => {
   }
 };
 
+export const signInWithEmailAndPassword = async (email, password) => {
+  try {
+    await firebaseSignInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    console.error('Error signing in with email and password:', error.message);
+  }
+};
+
 export const createUserProfileDocument = async (userAuth, additionalData) => {
   if (!userAuth) return;
 
-  const userRef = doc(firestore, `users/${userAuth.uid}`);
-  const snapShot = await getDoc(userRef);
+  const userDocRef = doc(db, `users/${userAuth.uid}`);
+  const userSnap = await getDoc(userDocRef);
 
-  if (!snapShot.exists()) {
+  if (!userSnap.exists()) {
     const { displayName, email } = userAuth;
-    const createdAt = new Date();
     try {
-      await setDoc(userRef, {
+      await setDoc(userDocRef, {
         displayName,
         email,
-        createdAt,
         ...additionalData
       });
     } catch (error) {
-      console.log('Error creating user:', error.message);
+      console.error('Error creating user profile', error.message);
     }
   }
-  return userRef;
+  return userDocRef;
 };
+
+export { auth, db };
